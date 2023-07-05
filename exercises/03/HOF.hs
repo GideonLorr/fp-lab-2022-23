@@ -92,8 +92,7 @@ data Tuple a b = MkTuple a b
 
 -- swap :: Tuple a b -> Tuple b a
 fstTuple :: Tuple doycho gesho -> doycho
-fstTuple (MkTuple x y) = x
-
+fstTuple (MkTuple x _) = x
 
 xyzzy :: Tuple Int String
 xyzzy = MkTuple 123 "asdf"
@@ -113,7 +112,7 @@ xyzzy1 = MkTuple True ()
 infixr 0 $
 
 -- EXERCISE
--- Take two arguments and return the second.
+-- Take two arguments and return the first.
 -- This is called const because if we think of it as a function
 -- on one argument x, it returns a function that when called, always returns x
 -- It is also practically always used partially applied.
@@ -123,18 +122,18 @@ infixr 0 $
 -- >>> applyTwice (const 42) 1337
 -- 42
 const :: a -> b -> a
-const = undefined
+const x _ = x
 
 -- EXERCISE
 -- Compose two functions, very useful very often
--- there's a builtin (.) for this - the dot mimics mathematical notation f o g
+-- there's a built-in (.) for this - the dot mimics mathematical notation f o g
 -- EXAMPLES
 -- >>> let f = compose (+3) (*5) in f 4
 -- 23
 -- >>> let f = compose (*5) (+5) in f 4
 -- 45
 compose :: (b -> c) -> (a -> b) -> a -> c
-compose = undefined
+compose f g x = f $ g x
 
 -- EXERCISE
 -- Iterate a function f n times over a base value x.
@@ -144,7 +143,8 @@ compose = undefined
 -- >>> iterateN (*2) 1 10
 -- 1024
 iterateN :: (a -> a) -> a -> Integer -> a
-iterateN = undefined
+iterateN _ base 0 = base
+iterateN f base val = f $ iterateN f base (val - 1)
 
 -- EXERCISE
 -- Swap the two elements of a tuple
@@ -152,7 +152,7 @@ iterateN = undefined
 -- >>> swap $ MkTuple 42 69
 -- MkTuple 69 42
 swap :: Tuple a b -> Tuple b a
-swap = undefined
+swap (MkTuple x y) = MkTuple y x
 
 -- EXERCISE
 -- Apply a function to only the first component of a tuple
@@ -160,31 +160,31 @@ swap = undefined
 -- >>> first (*2) $ MkTuple 21 1337
 -- MkTuple 42 1337
 first :: (a -> b) -> Tuple a c -> Tuple b c
-first = undefined
+first f (MkTuple x y) = MkTuple (f x) y
 
 -- EXERCISE
 -- Convert a function operating on a tuple, to one that takes two arguments.
 -- Called Curry after Haskell Curry - inventor of lambda calculus.
 -- EXAMPLES
--- >>> curryTuple (\(MkTuple x y) -> x * y) 23 3
+-- >>> curry (\(MkTuple x y) -> x * y) 23 3
 -- 69
 curry :: (Tuple a b -> c) -> a -> b -> c
-curry = undefined
+curry f x y = f (MkTuple x y)
 
 -- EXERCISE
 -- Convert a function operating on a tuple, to one that takes two arguments.
 -- Called Curry after Haskell Curry - inventor of lambda calculus.
 -- EXAMPLES
--- >>> uncurryTuple (\x y -> x + y) $ MkTuple 23 46
+-- >>> uncurry (\x y -> x + y) $ MkTuple 23 46
 -- 69
 uncurry :: (a -> b -> c) -> Tuple a b -> c
-uncurry = undefined
+uncurry f (MkTuple x y)  = f x y
 
 -- EXERCISE
 -- > p `on` f
 -- Implement a combinator that allows you to "preapply" a function f on the arguments of a function p
 -- EXAMPLES
--- >>> let maxOnFirst = max `on` fstTuple in maxFirst (MkTuple 1 20) (MkTuple 2 100000)
+-- >>> let maxOnFirst = max `on` fstTuple in maxOnFirst (MkTuple 1 20) (MkTuple 2 100000)
 -- 2
 sumTuple :: Tuple Int Int -> Int
 sumTuple (MkTuple x y) = x + y
@@ -192,17 +192,17 @@ sumTuple (MkTuple x y) = x + y
 -- 59
 -- You can look at the `fight` from the solutions from last time for good actual usage of the function
 on :: (b -> b -> c) -> (a -> b) -> a -> a -> c
-on = undefined
+on f g expr1 expr2 = f (g expr1) (g expr2) 
 
 -- EXERCISE
 -- Apply two different functions to the two different arguments of a tuple
 -- Think about what the type should be.
--- mapTuple :: ???
--- mapTuple = undefined
+mapTuple :: (a -> b) -> (c -> d) -> Tuple a c -> Tuple b d
+mapTuple f g (MkTuple x y) = MkTuple (f x) (g y)
 
 data Nat
   = Zero
-  | Suc Nat
+  | Succ Nat
   deriving Show
 
 -- EXERCISE
@@ -220,9 +220,9 @@ data Nat
 -- Can you implement a general enough higher-order function that you can then use to
 -- implement both of them by passing suitable arguments?
 -- If your function is "good enough" you should also be able to implement exponentiation using it.
--- coolNat :: ???
+-- coolNat :: Nat -> Nat -> Nat
 -- coolNat = ???
 -- Can you also implement the "predecessor" function using it? Yes/no, and why? Please do share
 -- predNat :: Nat -> Nat
 -- predNat Zero = Zero
--- predNat (Suc n) = n
+-- predNat (Succ n) = n

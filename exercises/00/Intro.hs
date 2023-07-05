@@ -115,7 +115,7 @@ fact n =
 -- 34
 fib :: Integer -> Integer
 fib = _
-
+-}
 -- use the following "mathematical definition" to implement addition on natural numbers:
 -- myPlus x y = y                 if x == 0
 -- myPlus x y = succ(myPlus(pred(x), y)) else
@@ -127,8 +127,11 @@ fib = _
 -- 69
 -- >>> myPlus 0 42
 -- 42
+
 myPlus :: Integer -> Integer -> Integer
-myPlus n m = _
+myPlus 0 m = m
+myPlus n m = myPlus (pred n) (succ m)
+
 
 -- same as above, implement multiplication on natural numbers recursively, using addition instead of succ
 -- EXAMPLES
@@ -138,9 +141,20 @@ myPlus n m = _
 -- 0
 -- >>> myMult 1 42
 -- 42
-myMult :: Integer -> Integer -> Integer
-myMult n m = _
 
+myMult :: Integer -> Integer -> Integer
+myMult 1 m = m
+myMult n m = myPlus (myMult (pred n) m) m 
+
+
+-- You can use the rem function:
+-- rem x y == what's the remainder of x when divided by y
+--
+-- For this task, use `where` construct(explained below) to define two helper functions:
+--
+divides :: Integer -> Integer -> Bool
+divides x y = x `rem` y == 0 
+  
 -- In the case of the exponent being even, use the property that
 -- x^(2*n) == (x*x)^n
 -- to implement "fast" exponentiation.
@@ -151,20 +165,19 @@ myMult n m = _
 -- 81
 -- >>> fastPow 2 6
 -- 64
-fastPow :: Integer -> Integer -> Integer
-fastPow = _
 
--- You can use the rem function:
--- rem x y == what's the remainder of x when divided by y
+fastPow :: Integer -> Integer -> Integer
+fastPow _ 0 = 1
+fastPow x y = if divides y 2
+              then fastPow (x * x) (div y 2)
+              else x * fastPow x (pred y)
+
 --
--- For this task, use `where` construct(explained below) to define two helper functions:
---
--- divides :: Integer -> Integer -> Bool
--- divides x y == check if x divides y
---
--- anyDividesInRange :: Integer -> Integer -> Bool
--- anyDividesInRange a b == check if in the range (a,b), any of the numbers divide n. You can do this by "iterating" via recursion
---
+anyDividesInRange :: Integer -> Integer -> Integer -> Bool
+anyDividesInRange n a b = a <= b && ((rem a n == 0 || rem n a == 0) || anyDividesInRange n (succ a) b)
+
+--anyDividesInRange a b == check if in the range (a,b), any of the numbers divide n. You can do this by "iterating" via recursion
+
 -- `where` reminder!
 -- isPrime n = ...
 --   where
@@ -184,6 +197,10 @@ fastPow = _
 -- False
 -- >>> isPrime 13
 -- True
+
 isPrime :: Integer -> Bool
-isPrime n = _
--}
+isPrime n = not (anyDividesInRange n 2 (pred n))
+
+
+
+

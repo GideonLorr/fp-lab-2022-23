@@ -9,10 +9,12 @@
 {-# OPTIONS_GHC -fwarn-name-shadowing #-}
 -- use all your pattern matches!
 {-# OPTIONS_GHC -fwarn-unused-matches #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 -- warnings
 
 module ADTs where
+import Data.Data (Data(toConstr))
 
 -- TODO: talk about
 
@@ -81,6 +83,7 @@ data RPS
   = Rock
   | Scissors
   | Paper
+  | Unknown
   deriving (Show)
 
 -- show ignore pattern match
@@ -129,7 +132,7 @@ showAnimal (Cat Black) = "amorphous blob"
 -- Zero ~ 0
 -- Succ Zero ~ 1
 -- Succ (Succ Zero) ~ 2
--- Succ (Succ (Succ Zero)) ~ 2
+-- Succ (Succ (Succ Zero)) ~ 3
 --
 -- data Point = MkPoint Float Float
 data Nat
@@ -183,7 +186,18 @@ addNat (Succ n) m =
 -- define what the "next" throw you can do is in the "usual" ordering of RPS
 -- i.e. @next x@ should be the throw that beats x
 next :: RPS -> RPS
-next = undefined
+next x
+ | x == Paper = Scissors
+ | x == Rock = Paper
+ | x == Scissors = Rock
+ | otherwise = undefined
+
+{-
+ | not (beats x Rock) && x /= Scissors = Paper
+ | not (beats x Paper) && x/= Rock = Scissors
+ | not (beats x Scissors) && x/= Paper  = Rock
+ | _ = Unknown
+-}
 
 -- TASK
 -- define what it means for two RPS values to be equal
@@ -196,11 +210,18 @@ next = undefined
 -- True
 -- >>> eqRPS Rock Paper
 -- False
+instance Eq RPS where
+  Rock == Rock = True
+  Scissors == Scissors = True
+  Paper == Paper = True
+  _ == _ = False
+
 eqRPS :: RPS -> RPS -> Bool
-eqRPS = undefined
+eqRPS x y = x == y
+
 
 -- TASK
--- define a shorter version of beats by uisng next and eqRPS
+-- define a shorter version of beats by using next and eqRPS
 -- EXAMPLES
 -- >>> beats' Rock Paper
 -- False
@@ -209,7 +230,7 @@ eqRPS = undefined
 -- >>> Paper `beats'` Scissors
 -- False
 beats' :: RPS -> RPS -> Bool
-beats' = undefined
+beats' x y = not (eqRPS x y || eqRPS (next x) y)
 
 -- TASK
 -- Your task is to model a few of the pieces of the game of Belote
@@ -217,38 +238,115 @@ beats' = undefined
 -- * implement a data type for Ranks (7 8 9 10 J etc)
 
 data Rank
+  =  Seven
+    |Eight
+    |Nine
+    |Ten
+    |Ace
+    |Jack
+    |King
+    |Queen
   deriving (Show)
 
 -- * implement a data type for Suits
 
 data Suit
+  =  Hearts
+    |Spades
+    |Diamonds
+    |Clubs
   deriving (Show)
 
 -- * implement a data type for a Card
 
-data Card
+data Card = Card Rank Suit
   deriving (Show)
 
 -- * implement a data type for Contracts (all trump, no trump etc)
 
-data Contract
+data Contract =
+    AllTrumps
+  | NoTrumps
+  | HeartsContract
+  | SpadesContract
+  | DiamondsContract
+  | ClubsContract
   deriving (Show)
+
+instance Eq Suit where
+  Hearts == Hearts = True
+  Spades == Spades = True
+  Diamonds == Diamonds = True
+  Clubs == Clubs = True
+  _ == _ = False
+
+instance Eq Contract where
+  AllTrumps == AllTrumps = True
+  NoTrumps == NoTrumps = True
+  HeartsContract == HeartsContract = True
+  SpadesContract == SpadesContract = True
+  DiamondsContract == DiamondsContract = True
+  ClubsContract == ClubsContract = True
+  _ == _ = False
+
+instance Eq Rank where
+  (==) :: Rank -> Rank -> Bool
+  Seven == Seven = True
+  Eight == Eight = True
+  Nine == Nine = True
+  Ten == Ten = True
+  Ace == Ace = True
+  Jack == Jack = True
+  King == King = True
+  Queen == Queen = True
+  _ == _ = False
 
 -- Given a Card and a Contract, implement a check whether the card is of a trump suit
 isTrump :: Contract -> Card -> Bool
-isTrump = undefined
+isTrump pContract (Card _ pSuit) =
+  case pContract of
+         AllTrumps ->  True
+         NoTrumps  -> True
+         HeartsContract -> pSuit == Hearts
+         SpadesContract -> pSuit == Spades
+         DiamondsContract -> pSuit == Diamonds
+         ClubsContract -> pSuit == Clubs
 
 -- Given a Card and a Contract, implement what the "power" of that card is as an Integer
 -- When played, a card with higher power will "beat" one with lower power
 -- You can use whatever numbers you like, as long as they reflect the rules of the game.
 cardPower :: Contract -> Card -> Integer
-cardPower = undefined
+cardPower pContract (Card pRank pSuit) =
+ case pRank of
+  Seven -> 0
+  Eight -> 0
+  Nine  -> if pContract == SpadesContract && pSuit == Spades ||
+            pContract == HeartsContract && pSuit == Hearts ||
+            pContract == DiamondsContract && pSuit == Diamonds ||
+            pContract == ClubsContract && pSuit == Clubs ||
+            pContract == AllTrumps
+            then 14
+            else 0
+  Ten   -> 10
+  Ace   -> 11
+  Jack  -> if pContract == SpadesContract && pSuit /= Spades ||
+            pContract == HeartsContract && pSuit /= Hearts ||
+            pContract == DiamondsContract && pSuit /= Diamonds ||
+            pContract == ClubsContract && pSuit /= Clubs ||
+            pContract == NoTrumps
+            then 2
+            else 20
+  King  ->  4
+  Queen ->  3
 
 -- Given two Cards and a Contract, return the Card that would "win" (according to their power)
 -- when playing under the given Contract
 -- Assume that the first matched card is played first.
 fight :: Contract -> Card -> Card -> Card
-fight = undefined
+fight pContract (Card pRank1 pSuit1) (Card pRank2 pSuit2) =
+  if cardPower pContract (Card pRank1 pSuit1) > cardPower pContract (Card pRank2 pSuit2)
+    then Card pRank1 pSuit1
+    else Card pRank2 pSuit2
 
 -- TASK
 -- multiply two @Nat@s recursively, much like we did with Ints last time
@@ -258,7 +356,9 @@ fight = undefined
 -- >>> multNat (integerToNat 2) (integerToNat 3)
 -- Suc (Suc (Suc (Suc (Suc (Suc Zero)))))
 multNat :: Nat -> Nat -> Nat
-multNat = undefined
+multNat Zero _ = Zero
+multNat (Succ Zero) m = m
+multNat (Succ n) m = addNat (multNat n m) m  
 
 -- TASK
 -- calculate the larger of two @Nat@s recursively
@@ -270,7 +370,9 @@ multNat = undefined
 -- >>> maxNat (Suc (Suc Zero)) (Suc (Suc (Suc (Suc Zero))))
 -- Suc (Suc (Suc (Suc Zero)))
 maxNat :: Nat -> Nat -> Nat
-maxNat = undefined
+maxNat x y = if natToInteger x > natToInteger y
+                then x
+                else y
 
 -- TASK
 -- Ordering is a datatype that is made to mean "the result of a comparison" or "the ordering between two things"
@@ -279,14 +381,18 @@ maxNat = undefined
 -- with the constructors being L(ess)T(han), EQ(ual) G(reater)T(han)
 -- implement a comparison for @Nat@s, returning an @Ordering@
 -- EXAMPLES
--- >>> compareNat (Suc Zero) (Suc Zero)
+-- >>> compareNat (Succ Zero) (Succ Zero)
 -- EQ
--- >>> compareNat Zero (Suc Zero)
+-- >>> compareNat Zero (Succ Zero)
 -- LT
--- >>> compareNat (Suc Zero) Zero
+-- >>> compareNat (Succ Zero) Zero
 -- GT
+
 compareNat :: Nat -> Nat -> Ordering
-compareNat = undefined
+compareNat x y
+ | natToInteger x > natToInteger y = GT
+ | natToInteger x < natToInteger y = LT
+ | otherwise = EQ
 
 -- README
 -- the "syntax" for a very basic "calculator" datatype
@@ -304,6 +410,7 @@ data Expr
   = Val Integer
   | Plus Expr Expr
   | Mult Expr Expr
+  | If Expr Expr Expr
   deriving (Show)
 
 -- README - SECTIONS
@@ -320,8 +427,8 @@ data Expr
 -- be?
 -- We can use these pragmas
 infixr 7 `Plus`
-
 infixr 8 `Mult`
+infixr 9 `If`
 
 -- infixr(ight)
 -- to tell the compiler that when used in a section/as operators
@@ -350,8 +457,11 @@ infixr 8 `Mult`
 -- 42
 -- >>> eval (Val 3 `Plus` Val 3 `Mult` Val 7)
 -- 24
+
 eval :: Expr -> Integer
-eval = undefined
+eval (Val pExpr) = pExpr
+eval (Plus lExpr rExpr) = (+) (eval lExpr) (eval rExpr)
+eval (Mult lExpr rExpr) = (*) (eval lExpr) (eval rExpr)
 
 -- TASK
 -- add an If expression to our Expr language

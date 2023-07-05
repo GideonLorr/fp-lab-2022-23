@@ -3,6 +3,7 @@ name: project
 # Add other packages you are using here
 dependencies:
 - base >= 4.7 && < 5
+- random
 
 ghc-options:
 - -Werror                   # warnings are errors
